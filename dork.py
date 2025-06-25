@@ -2,9 +2,14 @@ from selenium import webdriver
 from selenium.webdriver.firefox.options import Options as FirefoxOptions
 from selenium.webdriver.firefox.service import Service as FirefoxService
 from webdriver_manager.firefox import GeckoDriverManager
+from webdriver_manager.core.utils import set_env_var
 from bs4 import BeautifulSoup
 import time
 import urllib.parse
+import os
+
+# Optional: Use GitHub token to avoid API rate limits on Render
+set_env_var("GH_TOKEN", os.environ.get("GH_TOKEN"))
 
 DORKS = [
     'site:{site} inurl:admin',
