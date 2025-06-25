@@ -9,7 +9,7 @@ import urllib.parse
 import os
 
 # Optional: Use GitHub token to avoid API rate limits on Render
-set_env_var("GH_TOKEN", os.environ.get("GH_TOKEN"))
+set_env_var("GH_TOKEN", os.environ.get("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"))
 
 DORKS = [
     'site:{site} inurl:admin',
