@@ -1,13 +1,10 @@
 import requests
 from bs4 import BeautifulSoup
-import urllib.parse
 
-# User-Agent header to avoid bot detection
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
 }
 
-# Common dorks for testing vulnerabilities and sensitive data exposure
 DORKS = [
     'site:{site} inurl:admin',
     'site:{site} inurl:login',
@@ -21,53 +18,37 @@ DORKS = [
     'site:{site} inurl:storemanager/contents/item.php?page_code=',
 ]
 
-# Function to perform Bing search with BeautifulSoup
-def bing_search(query, domain):
-    url = f"https://www.bing.com/search?q={urllib.parse.quote_plus(query)}"
+def bing_search(query):
+    url = f"https://www.bing.com/search?q={requests.utils.quote(query)}"
     try:
         response = requests.get(url, headers=HEADERS, timeout=10)
-        soup = BeautifulSoup(response.text, 'html.parser')
-        links = []
+        soup = BeautifulSoup(response.text, "html.parser")
+        results = []
 
-        # Extract links from Bing results
-        for h2 in soup.find_all('h2'):
-            a = h2.find('a')
-            if a and a.get('href'):
-                href = a['href']
-                if domain in href:
-                    links.append(href)
-
-        # Fallback if nothing found
-        if not links:
-            for li in soup.find_all('li', class_='b_algo'):
-                a = li.find('a')
-                if a and a.get('href'):
-                    href = a['href']
-                    if domain in href:
-                        links.append(href)
-
-        return links
+        for li in soup.select('li.b_algo h2 a'):
+            link = li.get('href')
+            if link and link.startswith("http"):
+                results.append(link)
+        return results
     except Exception as e:
-        return [f"[!] Request failed: {str(e)}"]
+        return [f"[!] Request failed: {e}"]
 
-# Main function to run all dorks on the given site
 def perform_dorking(site):
-    all_results = []
-    counter = 1
+    output_lines = []
 
     for dork in DORKS:
         query = dork.format(site=site)
-        print(f"[+] Dorking: {query}")
-        results = bing_search(query, site)
+        output_lines.append(f"[+] Dorking: {query}")
+        links = bing_search(query)
 
-        if results and not all("[!]" in r for r in results):
-            for res in results:
-                print(f"[{counter}] {res}")
-                counter += 1
-                all_results.append(res)
+        # Filter only valid links containing site
+        filtered_links = [l for l in links if site in l]
+
+        if not filtered_links:
+            output_lines.append("[!] No valid links from target domain found.")
         else:
-            print(f"[!] No valid links from target domain found.")
+            for i, link in enumerate(filtered_links, start=1):
+                output_lines.append(f"[{i}] {link}")
+        output_lines.append("-" * 60)
 
-        print("-" * 60)
-
-    return all_results
+    return output_lines
