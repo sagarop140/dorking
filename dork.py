@@ -1,8 +1,13 @@
 import requests
 from bs4 import BeautifulSoup
 import urllib.parse
-import time
 
+# Search headers to mimic a browser
+HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+}
+
+# Common dork payloads
 DORKS = [
     'site:{site} inurl:admin',
     'site:{site} inurl:login',
@@ -16,45 +21,35 @@ DORKS = [
     'site:{site} inurl:storemanager/contents/item.php?page_code=',
 ]
 
-HEADERS = {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
-}
-
-def duckduckgo_search(query):
-    url = f"https://html.duckduckgo.com/html/?q={urllib.parse.quote_plus(query)}"
+def bing_search(query):
+    """Scrape Bing search results for the given query"""
+    search_url = f"https://www.bing.com/search?q={urllib.parse.quote_plus(query)}"
     try:
-        response = requests.get(url, headers=HEADERS, timeout=10)
-        response.raise_for_status()
+        response = requests.get(search_url, headers=HEADERS, timeout=10)
         soup = BeautifulSoup(response.text, 'html.parser')
-        results = []
+        links = []
 
-        for a_tag in soup.find_all('a', class_='result__a'):
-            href = a_tag.get('href')
-            if href and 'uddg=' in href:
-                parsed = urllib.parse.urlparse(href)
-                query_params = urllib.parse.parse_qs(parsed.query)
-                real_url = query_params.get('uddg', [None])[0]
-                if real_url:
-                    results.append(urllib.parse.unquote(real_url))
-            elif href:
-                results.append(href)
+        for h2 in soup.find_all('h2'):
+            a = h2.find('a')
+            if a and a.get('href'):
+                links.append(a['href'])
 
-        time.sleep(1)
-        return results
-
-    except requests.exceptions.RequestException as e:
-        return [f"[!] Request failed: {e}"]
+        return links
+    except Exception as e:
+        return [f"[!] Request failed: {str(e)}"]
 
 def perform_dorking(site):
-    log = []
+    """Run all dorks against the provided site and collect logs"""
+    logs = []
     for dork in DORKS:
         query = dork.format(site=site)
-        log.append(f"[+] Dorking: {query}")
-        results = duckduckgo_search(query)
+        logs.append(f"[+] Dorking: {query}")
+        results = bing_search(query)
+
         if not results:
-            log.append("[-] No results found")
+            logs.append("[!] No results found.")
         else:
-            for i, result in enumerate(results, 1):
-                log.append(f"[{i}] {result}")
-        log.append("-" * 60)
-    return log
+            for i, result in enumerate(results, start=1):
+                logs.append(f"[{i}] {result}")
+        logs.append("-" * 60)
+    return logs
