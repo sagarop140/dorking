@@ -1,42 +1,50 @@
-from flask import Flask, request, render_template_string
+from flask import Flask, request
 from dork import perform_dorking
+import os
 
 app = Flask(__name__)
 
-HTML_TEMPLATE = """
-<!doctype html>
+HTML_TEMPLATE = '''
+<!DOCTYPE html>
 <html>
 <head>
     <title>Dorking Tool</title>
     <style>
-        body { background: #111; color: #eee; font-family: monospace; padding: 20px; }
-        input, button { padding: 10px; background: #222; color: #0f0; border: 1px solid #555; margin-bottom: 10px; }
-        textarea { width: 100%; height: 400px; background: #000; color: #0f0; padding: 10px; border: none; white-space: pre; }
+        body {{ background-color: #0f1117; color: #f8f8f2; font-family: monospace; padding: 20px; }}
+        input[type="text"] {{ width: 300px; padding: 8px; }}
+        input[type="submit"] {{ padding: 8px 16px; background-color: #50fa7b; border: none; color: black; cursor: pointer; }}
+        pre {{ background-color: #282a36; padding: 10px; border-radius: 5px; overflow-x: auto; }}
     </style>
 </head>
 <body>
-    <h2>🕵️‍♂️ Google Dorking Tool by TheXM0G</h2>
+    <h1>Google Dorking (via Bing) Tool</h1>
     <form method="POST">
-        <input name="site" placeholder="Enter domain (e.g., tryhackme.com)" required>
-        <button type="submit">Start Dorking</button>
+        <label>Enter domain (e.g., nasa.gov):</label><br><br>
+        <input type="text" name="site" required>
+        <input type="submit" value="Start Dorking">
     </form>
-    {% if logs %}
-    <h3>🔍 Scan Log:</h3>
-    <textarea readonly>{{ logs }}</textarea>
-    {% endif %}
+    <hr>
+    {results}
 </body>
 </html>
-"""
+'''
 
-@app.route("/", methods=["GET", "POST"])
+@app.route('/', methods=['GET', 'POST'])
 def index():
-    logs = ""
-    if request.method == "POST":
-        site = request.form.get("site")
-        if site:
-            log_lines = perform_dorking(site)
-            logs = "\n".join(log_lines)
-    return render_template_string(HTML_TEMPLATE, logs=logs)
+    results_output = ""
+    if request.method == 'POST':
+        site = request.form['site'].strip()
+        dork_results = perform_dorking(site)
+        if dork_results:
+            results_output += "<pre>"
+            for res in dork_results:
+                results_output += res + "\n"
+            results_output += "</pre>"
+        else:
+            results_output = "<p>No results found.</p>"
 
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=10000, debug=True)
+    return HTML_TEMPLATE.format(results=results_output)
+
+if __name__ == '__main__':
+    port = int(os.environ.get("PORT", 10000))  # For Render deployment
+    app.run(host='0.0.0.0', port=port, debug=True)
