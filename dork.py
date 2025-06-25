@@ -22,23 +22,29 @@ HEADERS = {
 
 def duckduckgo_search(query):
     url = f"https://html.duckduckgo.com/html/?q={urllib.parse.quote_plus(query)}"
-    response = requests.get(url, headers=HEADERS)
-    soup = BeautifulSoup(response.text, 'html.parser')
-    results = []
+    try:
+        response = requests.get(url, headers=HEADERS, timeout=10)
+        response.raise_for_status()
+        soup = BeautifulSoup(response.text, 'html.parser')
+        results = []
 
-    for a_tag in soup.find_all('a', class_='result__a'):
-        href = a_tag.get('href')
-        if href and 'uddg=' in href:
-            parsed = urllib.parse.urlparse(href)
-            query_params = urllib.parse.parse_qs(parsed.query)
-            real_url = query_params.get('uddg', [None])[0]
-            if real_url:
-                results.append(urllib.parse.unquote(real_url))
-        elif href:
-            results.append(href)
+        for a_tag in soup.find_all('a', class_='result__a'):
+            href = a_tag.get('href')
+            if href and 'uddg=' in href:
+                parsed = urllib.parse.urlparse(href)
+                query_params = urllib.parse.parse_qs(parsed.query)
+                real_url = query_params.get('uddg', [None])[0]
+                if real_url:
+                    results.append(urllib.parse.unquote(real_url))
+            elif href:
+                results.append(href)
 
-    time.sleep(1)  # Be polite to DuckDuckGo
-    return results
+        time.sleep(1)
+        return results
+
+    except requests.exceptions.RequestException as e:
+        print(f"[!] DuckDuckGo request failed: {e}")
+        return []
 
 def perform_dorking(site):
     all_results = []
