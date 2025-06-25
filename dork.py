@@ -2,12 +2,12 @@ import requests
 from bs4 import BeautifulSoup
 import urllib.parse
 
-# Headers to mimic a browser request
+# User-Agent header to avoid bot detection
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
 }
 
-# List of Google dorks to apply
+# Common dorks for testing vulnerabilities and sensitive data exposure
 DORKS = [
     'site:{site} inurl:admin',
     'site:{site} inurl:login',
@@ -21,7 +21,7 @@ DORKS = [
     'site:{site} inurl:storemanager/contents/item.php?page_code=',
 ]
 
-# Function to perform a Bing search and filter results by domain
+# Function to perform Bing search with BeautifulSoup
 def bing_search(query, domain):
     url = f"https://www.bing.com/search?q={urllib.parse.quote_plus(query)}"
     try:
@@ -29,27 +29,45 @@ def bing_search(query, domain):
         soup = BeautifulSoup(response.text, 'html.parser')
         links = []
 
+        # Extract links from Bing results
         for h2 in soup.find_all('h2'):
             a = h2.find('a')
-            if a and a.get('href') and domain in a['href']:
-                links.append(a['href'])
+            if a and a.get('href'):
+                href = a['href']
+                if domain in href:
+                    links.append(href)
+
+        # Fallback if nothing found
+        if not links:
+            for li in soup.find_all('li', class_='b_algo'):
+                a = li.find('a')
+                if a and a.get('href'):
+                    href = a['href']
+                    if domain in href:
+                        links.append(href)
 
         return links
     except Exception as e:
         return [f"[!] Request failed: {str(e)}"]
 
-# Main function to perform all dorks
+# Main function to run all dorks on the given site
 def perform_dorking(site):
-    logs = []
+    all_results = []
+    counter = 1
+
     for dork in DORKS:
         query = dork.format(site=site)
-        logs.append(f"[+] Dorking: {query}")
+        print(f"[+] Dorking: {query}")
         results = bing_search(query, site)
 
-        if not results:
-            logs.append("[!] No valid links from target domain found.")
+        if results and not all("[!]" in r for r in results):
+            for res in results:
+                print(f"[{counter}] {res}")
+                counter += 1
+                all_results.append(res)
         else:
-            for idx, link in enumerate(results, start=1):
-                logs.append(f"[{idx}] {link}")
-        logs.append("-" * 60)
-    return logs
+            print(f"[!] No valid links from target domain found.")
+
+        print("-" * 60)
+
+    return all_results
