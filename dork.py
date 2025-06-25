@@ -43,13 +43,18 @@ def duckduckgo_search(query):
         return results
 
     except requests.exceptions.RequestException as e:
-        print(f"[!] DuckDuckGo request failed: {e}")
-        return []
+        return [f"[!] Request failed: {e}"]
 
 def perform_dorking(site):
-    all_results = []
+    log = []
     for dork in DORKS:
         query = dork.format(site=site)
+        log.append(f"[+] Dorking: {query}")
         results = duckduckgo_search(query)
-        all_results.extend(results)
-    return all_results
+        if not results:
+            log.append("[-] No results found")
+        else:
+            for i, result in enumerate(results, 1):
+                log.append(f"[{i}] {result}")
+        log.append("-" * 60)
+    return log
