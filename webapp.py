@@ -3,7 +3,7 @@ from dork import perform_dorking
 
 app = Flask(__name__)
 
-HTML_TEMPLATE = '''
+HTML_TEMPLATE = '
 <!doctype html>
 <html>
 <head>
@@ -26,3 +26,4 @@ HTML_TEMPLATE = '''
     {% endif %}
 </body>
 </html>
+'
