@@ -1,8 +1,7 @@
 import requests
-from urllib.parse import urlparse, quote_plus
 from bs4 import BeautifulSoup
+from urllib.parse import urlparse, quote_plus
 
-# List of dorks to use
 DORKS = [
     "site:nasa.gov inurl:admin",
     "site:nasa.gov inurl:login",
@@ -21,54 +20,52 @@ HEADERS = {
                   "(KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36"
 }
 
-MOJEEK_SEARCH_URL = "https://www.mojeek.com/search?q="
+BING_SEARCH_URL = "https://www.bing.com/search?q="
 
-def scrape_mojeek(query):
-    """Send search query to Mojeek and return a list of URLs."""
+def bing_search(query):
     try:
-        url = MOJEEK_SEARCH_URL + quote_plus(query)
-        resp = requests.get(url, headers=HEADERS, timeout=10)
-        resp.raise_for_status()
-        soup = BeautifulSoup(resp.text, "html.parser")
-        
-        # Mojeek search results URLs are in <a class="result__url" href="...">
-        anchors = soup.find_all("a", class_="result__url")
-        urls = []
-        for a in anchors:
-            href = a.get('href')
-            if href:
-                urls.append(href.strip())
-        return urls
+        url = BING_SEARCH_URL + quote_plus(query)
+        response = requests.get(url, headers=HEADERS, timeout=10)
+        response.raise_for_status()
+        soup = BeautifulSoup(response.text, "html.parser")
+        results = []
+        for item in soup.find_all('li', class_='b_algo'):
+            h2 = item.find('h2')
+            if h2 and h2.a:
+                link = h2.a['href']
+                results.append(link)
+        return results
     except Exception as e:
         print(f"[!] Request failed: {e}")
         return []
 
-def filter_urls(urls, domain):
-    """Filter URLs to keep those with domain or subdomains matching the target."""
+def filter_urls(urls, base_domain):
     filtered = []
+    base_domain = base_domain.lower()
     for url in urls:
         parsed = urlparse(url)
-        if domain in parsed.netloc.lower():
+        hostname = parsed.netloc.lower()
+        if hostname == base_domain or hostname.endswith('.' + base_domain):
             filtered.append(url)
     return filtered
 
-def perform_dorking(domain):
-    print(f"Starting dorking for domain: {domain}\n")
-    results_all = {}
+def get_subdomain(url):
+    parsed = urlparse(url)
+    return parsed.netloc.lower()
+
+def perform_dorking(base_domain):
+    print(f"Starting dorking for domain: {base_domain}\n")
     for dork in DORKS:
         print(f"[+] Dorking: {dork}")
-        urls = scrape_mojeek(dork)
-        filtered_urls = filter_urls(urls, domain)
-        
-        if not filtered_urls:
+        urls = bing_search(dork)
+        filtered = filter_urls(urls, base_domain)
+        if not filtered:
             print("[!] No valid links found for this dork.")
         else:
-            for i, url in enumerate(filtered_urls, start=1):
-                print(f"[{i}] {url}")
-        
+            for i, link in enumerate(filtered, 1):
+                subdomain = get_subdomain(link)
+                print(f"[{i}] ({subdomain}) {link}")
         print("-" * 60)
-        results_all[dork] = filtered_urls
-    return results_all
 
 if __name__ == "__main__":
     target_domain = "nasa.gov"
