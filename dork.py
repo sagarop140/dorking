@@ -18,29 +18,37 @@ DORKS = [
     'site:{site} inurl:storemanager/contents/item.php?page_code='
 ]
 
-def mojeek_search(query, target_domain):
+def mojeek_search(query, domain):
     url = f"https://www.mojeek.com/search?q={requests.utils.quote(query)}"
     try:
-        response = requests.get(url, headers=HEADERS, timeout=10)
-        soup = BeautifulSoup(response.text, 'html.parser')
-        results = []
-        for a in soup.find_all('a', href=True):
-            href = a['href']
-            if target_domain in href and href.startswith('http'):
-                results.append(href)
-        return list(set(results))  # Remove duplicates
+        resp = requests.get(url, headers=HEADERS, timeout=10)
+        resp.raise_for_status()
+        soup = BeautifulSoup(resp.text, 'html.parser')
+        links = []
+
+        # Only look at result-title anchors which contain actual results
+        for a in soup.select('a.result-title'):
+            href = a.get('href')
+            if href and href.startswith('http') and domain in href:
+                links.append(href)
+
+        return links
+
     except requests.exceptions.RequestException as e:
-        print(f"[!] Request failed: {e}")
+        print(f"[!] Mojeek request failed: {e}")
         return []
 
 def perform_dorking(site):
+    logs = []
     for dork in DORKS:
         query = dork.format(site=site)
-        print(f"[+] Dorking: {query}")
+        logs.append(f"[+] Dorking: {query}")
         results = mojeek_search(query, site)
+
         if results:
             for i, link in enumerate(results, 1):
-                print(f"[{i}] {link}")
+                logs.append(f"[{i}] {link}")
         else:
-            print("[!] No valid links from target domain found.")
-        print("-" * 60)
+            logs.append("[!] No valid links from target domain found.")
+        logs.append("-" * 60)
+    return logs
