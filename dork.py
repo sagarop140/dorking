@@ -2,14 +2,12 @@ from selenium import webdriver
 from selenium.webdriver.firefox.options import Options as FirefoxOptions
 from selenium.webdriver.firefox.service import Service as FirefoxService
 from webdriver_manager.firefox import GeckoDriverManager
-from webdriver_manager.core.utils import set_env_var
 from bs4 import BeautifulSoup
 import time
 import urllib.parse
 import os
 
-# Optional: Use GitHub token to avoid API rate limits on Render
-set_env_var("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", os.environ.get("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"))
+# Ensure GH_TOKEN is set in Render dashboard for rate-limit protection
 
 DORKS = [
     'site:{site} inurl:admin',
