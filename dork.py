@@ -1,10 +1,6 @@
 import requests
 from bs4 import BeautifulSoup
 
-HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
-}
-
 DORKS = [
     'site:{site} inurl:admin',
     'site:{site} inurl:login',
@@ -18,38 +14,40 @@ DORKS = [
     'site:{site} inurl:storemanager/contents/item.php?page_code=',
 ]
 
-def brave_search(query):
-    url = f"https://search.brave.com/search?q={requests.utils.quote(query)}"
+HEADERS = {
+    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64)"
+}
+
+def mojeek_search(query, target_domain):
+    url = f"https://www.mojeek.com/search?q={requests.utils.quote(query)}"
     try:
         response = requests.get(url, headers=HEADERS, timeout=10)
+        response.raise_for_status()
         soup = BeautifulSoup(response.text, "html.parser")
         results = []
 
-        for a in soup.select("a.result-header"):
-            link = a.get("href")
-            if link and link.startswith("http"):
-                results.append(link)
+        for link in soup.select("a.result-title"):
+            href = link.get("href")
+            if href and target_domain in href:
+                results.append(href)
 
         return results
-    except Exception as e:
-        return [f"[!] Request failed: {e}"]
+
+    except requests.RequestException as e:
+        print(f"[!] Request failed: {e}")
+        return []
 
 def perform_dorking(site):
-    output_lines = []
-
+    all_results = {}
     for dork in DORKS:
         query = dork.format(site=site)
-        output_lines.append(f"[+] Dorking: {query}")
-        links = brave_search(query)
-
-        filtered_links = [l for l in links if site in l]
-
-        if not filtered_links:
-            output_lines.append("[!] No valid links from target domain found.")
+        print(f"[+] Dorking: {query}")
+        results = mojeek_search(query, site)
+        if results:
+            for idx, link in enumerate(results, 1):
+                print(f"[{idx}] {link}")
         else:
-            for i, link in enumerate(filtered_links, 1):
-                output_lines.append(f"[{i}] {link}")
-
-        output_lines.append("-" * 60)
-
-    return output_lines
+            print("[!] No valid links from target domain found.")
+        print("-" * 60)
+        all_results[query] = results
+    return all_results
