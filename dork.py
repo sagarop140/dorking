@@ -1,13 +1,7 @@
-from selenium import webdriver
-from selenium.webdriver.firefox.options import Options as FirefoxOptions
-from selenium.webdriver.firefox.service import Service as FirefoxService
-from webdriver_manager.firefox import GeckoDriverManager
+import requests
 from bs4 import BeautifulSoup
-import time
 import urllib.parse
-import os
-
-# Ensure GH_TOKEN is set in Render dashboard for rate-limit protection
+import time
 
 DORKS = [
     'site:{site} inurl:admin',
@@ -22,18 +16,14 @@ DORKS = [
     'site:{site} inurl:storemanager/contents/item.php?page_code=',
 ]
 
-def init_browser():
-    options = FirefoxOptions()
-    options.add_argument("--headless")
-    service = FirefoxService(GeckoDriverManager().install())
-    driver = webdriver.Firefox(service=service, options=options)
-    return driver
+HEADERS = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
+}
 
-def duckduckgo_search(driver, query):
-    search_url = f"https://html.duckduckgo.com/html/?q={urllib.parse.quote_plus(query)}"
-    driver.get(search_url)
-    time.sleep(2)
-    soup = BeautifulSoup(driver.page_source, 'html.parser')
+def duckduckgo_search(query):
+    url = f"https://html.duckduckgo.com/html/?q={urllib.parse.quote_plus(query)}"
+    response = requests.get(url, headers=HEADERS)
+    soup = BeautifulSoup(response.text, 'html.parser')
     results = []
 
     for a_tag in soup.find_all('a', class_='result__a'):
@@ -46,14 +36,14 @@ def duckduckgo_search(driver, query):
                 results.append(urllib.parse.unquote(real_url))
         elif href:
             results.append(href)
+
+    time.sleep(1)  # Be polite to DuckDuckGo
     return results
 
 def perform_dorking(site):
-    driver = init_browser()
     all_results = []
     for dork in DORKS:
         query = dork.format(site=site)
-        results = duckduckgo_search(driver, query)
+        results = duckduckgo_search(query)
         all_results.extend(results)
-    driver.quit()
     return all_results
