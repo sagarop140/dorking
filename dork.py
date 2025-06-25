@@ -102,3 +102,6 @@ if __name__ == '__main__':
     parser.add_argument('site', help="Target site domain (e.g., example.com)")
     args = parser.parse_args()
     perform_dorking(args.site)
+    
+driver.quit()
+return all_results
