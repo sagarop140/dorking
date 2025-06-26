@@ -1,10 +1,9 @@
-import requests
-from bs4 import BeautifulSoup
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
+from webdriver_manager.chrome import ChromeDriverManager
 import urllib.parse
-
-HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
-}
+import time
 
 DORKS = [
     'site:{site} inurl:admin',
@@ -19,21 +18,28 @@ DORKS = [
     'site:{site} inurl:storemanager/contents/item.php?page_code=',
 ]
 
-def duckduckgo_search(query, domain):
-    url = f"https://html.duckduckgo.com/html/?q={urllib.parse.quote_plus(query)}"
-    try:
-        res = requests.get(url, headers=HEADERS, timeout=10)
-        soup = BeautifulSoup(res.text, "html.parser")
-        links = []
+def bing_search(query, domain):
+    chrome_options = Options()
+    chrome_options.add_argument("--headless")
+    chrome_options.add_argument("--disable-gpu")
+    chrome_options.add_argument("--no-sandbox")
+    chrome_options.add_argument("--log-level=3")
 
-        for a in soup.select("a.result__url"):
-            href = a.get("href")
-            if href and domain in href:
-                links.append(href)
+    driver = webdriver.Chrome(ChromeDriverManager().install(), options=chrome_options)
+    search_url = f"https://www.bing.com/search?q={urllib.parse.quote_plus(query)}"
+    driver.get(search_url)
+    time.sleep(2)
 
-        return links or [f"[!] No results found for: {query}"]
-    except Exception as e:
-        return [f"[!] Error during search: {str(e)}"]
+    links = []
+    results = driver.find_elements(By.CSS_SELECTOR, "li.b_algo h2 a")
+
+    for r in results:
+        href = r.get_attribute("href")
+        if domain in href:
+            links.append(href)
+
+    driver.quit()
+    return links if links else [f"[!] No results found for: {query}"]
 
 def perform_dorking(site):
     results = []
@@ -41,10 +47,10 @@ def perform_dorking(site):
     for dork in DORKS:
         query = dork.format(site=site)
         print(f"[+] Dorking: {query}")
-        links = duckduckgo_search(query, site)
+        links = bing_search(query, site)
         for link in links:
             print(f"[{count}] {link}")
             results.append(link)
             count += 1
-        print("-" * 50)
+        print("-" * 60)
     return results
