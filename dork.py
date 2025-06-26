@@ -23,9 +23,12 @@ def bing_search(query, domain):
     chrome_options.add_argument("--headless")
     chrome_options.add_argument("--disable-gpu")
     chrome_options.add_argument("--no-sandbox")
+    chrome_options.add_argument("--disable-dev-shm-usage")
     chrome_options.add_argument("--log-level=3")
 
-    driver = webdriver.Chrome(ChromeDriverManager().install(), options=chrome_options)
+    # Correct usage with named argument
+    driver = webdriver.Chrome(executable_path=ChromeDriverManager().install(), options=chrome_options)
+
     search_url = f"https://www.bing.com/search?q={urllib.parse.quote_plus(query)}"
     driver.get(search_url)
     time.sleep(2)
