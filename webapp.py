@@ -1,5 +1,6 @@
 from flask import Flask, request, render_template_string
 from dork import perform_dorking
+import os
 
 app = Flask(__name__)
 
@@ -18,7 +19,7 @@ HTML_TEMPLATE = '''
     </style>
 </head>
 <body>
-    <h1>Mojeek Dorking Tool</h1>
+    <h1>DuckDuckGo Dorking Tool</h1>
     <form method="post">
         <input name="site" type="text" placeholder="Enter domain (e.g. nasa.gov)" required />
         <button type="submit">Start Dorking</button>
@@ -42,7 +43,5 @@ def index():
     return render_template_string(HTML_TEMPLATE, logs=logs)
 
 if __name__ == "__main__":
-    # Use port from environment or default 5000
-    import os
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=True)
