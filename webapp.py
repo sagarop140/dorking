@@ -19,7 +19,7 @@ HTML_TEMPLATE = '''
     </style>
 </head>
 <body>
-    <h1>DuckDuckGo Dorking Tool</h1>
+    <h1>Advanced Bing Dorking Tool</h1>
     <form method="post">
         <input name="site" type="text" placeholder="Enter domain (e.g. nasa.gov)" required />
         <button type="submit">Start Dorking</button>
